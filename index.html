@@ -1,0 +1,381 @@
+<title>Il Bilancio Ombra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;800;900&display=swap">
+<style>
+  :root{
+    --ink:#101D20; --ink-2:#16262B; --ink-3:#1E3238; --line:#274048;
+    --bone:#F0EDEE; --muted:#AEBABC; --dim:#6E787A;
+    --cyan:#00CCCC; --cyan-deep:#009C9B; --cyan-ink:#0A6E6E;
+    --loss:#C8283F; --loss-deep:#8A1029;
+    --font:'Outfit',system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{margin:0;background:var(--ink);color:var(--bone);font-family:var(--font);font-weight:300;font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh}
+  button,input,select{font:inherit;color:inherit}
+  button{cursor:pointer}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+  .app{max-width:540px;margin:0 auto;padding:0 20px 56px}
+  .step{display:none}
+  .step.on{display:block}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:400}
+  h1,h2{text-wrap:balance;margin:0}
+  h1{font-weight:900;font-size:clamp(42px,12vw,64px);line-height:.95;letter-spacing:-.02em;text-transform:uppercase}
+  h2{font-weight:800;font-size:clamp(26px,7vw,34px);line-height:1.05;letter-spacing:-.01em}
+  p{margin:0}
+  .lead{font-size:19px;color:var(--bone)}
+  .muted{color:var(--muted)}
+  .cyan{color:var(--cyan)}
+  .num{font-variant-numeric:tabular-nums}
+  .chev{display:inline-block;width:.6em;height:.6em;vertical-align:-.05em}
+  .chev polygon{fill:var(--cyan)}
+  .cta{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:18px 20px;border:0;border-radius:6px;background:var(--cyan);color:var(--ink);font-weight:800;font-size:18px;letter-spacing:.01em;text-transform:uppercase;transition:transform .15s ease,background .15s}
+  .cta:hover{background:#19dede}
+  .cta:active{transform:scale(.99)}
+  .cta .chev polygon{fill:var(--ink)}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--bone);font-weight:400;text-transform:none;letter-spacing:0;font-size:16px}
+  .ghost:hover{background:var(--ink-2)}
+  .ghost .chev polygon{fill:var(--cyan)}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;letter-spacing:.06em;padding:22px 0 8px}
+  .brand svg{width:18px;height:18px}
+  .brand b{font-weight:600;color:var(--bone)}
+
+  /* splash */
+  .splash{padding-top:6vh}
+  .splash .mark{width:min(46vw,190px);height:auto;display:block;margin:10px 0 6px -6px}
+  .splash h1{margin:6px 0 18px}
+  .splash .lead{max-width:30ch;margin-bottom:34px}
+  .stack{display:grid;gap:12px}
+  .fine{font-size:13px;color:var(--dim);margin-top:14px}
+
+  /* setup */
+  .field{padding:22px 0;border-top:1px solid var(--line)}
+  .field:first-of-type{border-top:0}
+  .field label{display:block;font-weight:400;font-size:17px;margin-bottom:6px}
+  .field .val{font-weight:800;font-size:40px;line-height:1;color:var(--cyan);letter-spacing:-.02em}
+  .field .val small{font-size:16px;font-weight:400;color:var(--muted);letter-spacing:0;margin-left:6px}
+  input[type=range]{width:100%;margin:14px 0 4px;accent-color:var(--cyan);height:28px}
+  .hint{font-size:14px;color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:transparent;font-size:14px;font-weight:400;color:var(--muted)}
+  .chip[aria-pressed=true]{background:var(--cyan);border-color:var(--cyan);color:var(--ink);font-weight:600}
+  .callout{margin-top:6px;padding:16px 18px;border-radius:6px;background:var(--ink-2);border-left:3px solid var(--cyan)}
+  .callout b{font-weight:800;color:var(--cyan)}
+
+  /* meter (sticky) */
+  .meter{position:sticky;top:0;z-index:5;margin:0 -20px;padding:14px 20px 12px;background:linear-gradient(var(--ink) 78%,rgba(16,29,32,0));backdrop-filter:blur(6px)}
+  .meter .eyebrow{display:flex;justify-content:space-between;align-items:baseline}
+  .meter .big{font-weight:900;font-size:clamp(40px,11vw,58px);line-height:1;letter-spacing:-.03em;color:var(--loss);margin-top:4px}
+  .meter .big small{font-size:.38em;font-weight:400;color:var(--muted);letter-spacing:0;margin-left:6px}
+  .meter .tick{font-size:13px;color:var(--muted);margin-top:6px}
+  .meter .tick b{font-weight:600;color:var(--bone)}
+
+  /* cards */
+  .cards{display:grid;gap:10px;margin-top:8px}
+  .card{background:var(--ink-2);border-radius:6px;padding:16px 16px 12px;border:1px solid transparent}
+  .card:has(input:focus-visible){border-color:var(--cyan)}
+  .card .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .card h3{margin:0;font-weight:600;font-size:18px;line-height:1.2}
+  .card .tag{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:400;padding:4px 8px;border-radius:3px;white-space:nowrap;margin-top:2px}
+  .tag.tecnico{background:#123B44;color:#7FE3E3}
+  .tag.organizzativo{background:#3B2E12;color:#F2C46B}
+  .tag.relazionale{background:#3B1A3A;color:#E9A4E2}
+  .tag.economico{background:#123B26;color:#8CE0AE}
+  .card .why{font-size:14px;color:var(--muted);margin-top:4px}
+  .card .row{display:flex;align-items:center;gap:14px;margin-top:8px}
+  .card .row input{flex:1;margin:0}
+  .card .h{min-width:78px;text-align:right;font-weight:800;font-size:22px;color:var(--bone);letter-spacing:-.01em}
+  .card .h small{font-size:12px;font-weight:400;color:var(--muted);display:block;line-height:1;margin-top:2px}
+  .card .cost{font-size:13px;color:var(--dim);margin-top:6px;display:flex;justify-content:space-between}
+  .card .cost b{color:var(--loss);font-weight:600}
+  .sticky-cta{position:sticky;bottom:12px;margin-top:18px}
+
+  /* verdict */
+  .verdict .kicker{display:inline-block;padding:6px 10px;border-radius:3px;background:var(--loss-deep);color:var(--bone);font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+  .kicker.ok{background:var(--cyan-ink)}
+  .hero-num{margin:18px 0 4px;font-weight:900;font-size:clamp(46px,13vw,72px);line-height:.95;letter-spacing:-.035em;color:var(--loss)}
+  .hero-num.gain{color:var(--cyan)}
+  .unit{font-size:15px;color:var(--muted);font-weight:400}
+  .equiv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0}
+  .eq{background:var(--ink-2);border-radius:6px;padding:14px}
+  .eq .v{font-weight:800;font-size:28px;letter-spacing:-.02em;line-height:1}
+  .eq .l{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.3}
+  .split{margin:30px 0 8px}
+  .bars{display:grid;gap:12px;margin-top:14px}
+  .bar .lbl{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
+  .bar .lbl span:last-child{color:var(--muted)}
+  .bar .track{height:12px;background:var(--ink-3);border-radius:2px;overflow:hidden;display:flex}
+  .bar .lost{background:var(--loss-deep);height:100%}
+  .bar .rec{background:var(--cyan);height:100%}
+  .legend{display:flex;gap:18px;font-size:13px;color:var(--muted);margin-top:12px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+  .honest{margin:28px 0 22px;padding:18px;border-radius:6px;background:var(--ink-2);border-left:3px solid var(--cyan)}
+  .honest p+p{margin-top:8px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--bone);color:var(--ink);padding:10px 16px;border-radius:4px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+  .toast.show{opacity:1}
+  .linkish{background:none;border:0;padding:0;color:var(--muted);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+  .linkish:hover{color:var(--bone)}
+  .sala{text-align:left}
+  .qrwrap{background:var(--bone);border-radius:8px;padding:18px;display:inline-block}
+  .qrwrap img,.qrwrap canvas{display:block;width:min(70vw,360px)!important;height:auto!important}
+  .url{font-size:14px;color:var(--muted);word-break:break-all;margin-top:14px}
+  @media (min-width:900px){.sala{max-width:none}.sala .qrwrap img,.sala .qrwrap canvas{width:min(60vh,520px)!important}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><symbol id="ss9" viewBox="0 0 283.46 283.46"><polygon points="77.64 10.07 77.64 85.09 130.79 138.24 77.64 191.39 77.64 269.55 205.82 138.24 77.64 10.07"/></symbol></defs>
+</svg>
+
+<div class="app">
+
+  <!-- 0 · SPLASH -->
+  <section class="step splash on" id="s0">
+    <div class="brand"><svg><use href="#ss9" fill="#00CCCC"/></svg><span><b>SS9 Digitale</b> · Il Valore del Tempo · 10 settembre 2026</span></div>
+    <svg class="mark" viewBox="0 0 283.46 283.46" aria-hidden="true"><use href="#ss9" fill="#00CCCC"/></svg>
+    <p class="eyebrow">Il tempo che non compare a bilancio</p>
+    <h1>Il Bilancio<br>Ombra</h1>
+    <p class="lead">Riunioni per capire a che punto siamo. Dati ricopiati a mano. File rifatti perché la versione buona era da un'altra parte. Nessun report li conta. <span class="cyan">Mettiamoci un numero sopra.</span></p>
+    <div class="stack">
+      <button class="cta" data-go="1">Metti un numero <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
+    </div>
+    <p class="fine">Tre minuti. Nessun dato lascia il tuo telefono.</p>
+    <p class="fine" style="margin-top:34px"><button class="linkish" data-go="4">Sei sul palco? Mostra il QR alla sala <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button></p>
+  </section>
+
+  <!-- 4 · MODALITÀ SALA (QR) -->
+  <section class="step sala" id="s4">
+    <div class="brand"><svg><use href="#ss9" fill="#00CCCC"/></svg><span><b>SS9 Digitale</b> · Il Valore del Tempo</span></div>
+    <p class="eyebrow">Il tempo che non compare a bilancio</p>
+    <h1 style="font-size:clamp(34px,9vw,54px)">Il Bilancio<br>Ombra</h1>
+    <p class="lead" style="margin:14px 0 22px">Inquadra. Tre minuti. Poi confronta il numero col vicino di tavolo.</p>
+    <div class="qrwrap"><div id="qr"></div></div>
+    <p class="url num" id="qrUrl"></p>
+    <div class="stack" style="margin-top:26px">
+      <button class="cta ghost" data-go="0">Torna al gioco <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
+    </div>
+  </section>
+
+  <!-- 1 · SETUP -->
+  <section class="step" id="s1">
+    <div class="brand"><svg><use href="#ss9" fill="#00CCCC"/></svg><span>Passo 1 di 3 · <b>La tua azienda</b></span></div>
+    <h2>Prima due numeri che conosci già.</h2>
+
+    <div class="field">
+      <label for="people">Persone che lavorano in ufficio (non in produzione)</label>
+      <div class="val num"><span id="peopleV">12</span><small>persone</small></div>
+      <input type="range" id="people" min="2" max="150" step="1" value="12">
+      <p class="hint">Amministrazione, commerciale, acquisti, logistica, tecnici d'ufficio. Chi passa la giornata tra mail, gestionale ed Excel.</p>
+    </div>
+
+    <div class="field">
+      <label for="cost">Costo aziendale di un'ora di una di queste persone</label>
+      <div class="val num"><span id="costV">35</span><small>€ / ora</small></div>
+      <input type="range" id="cost" min="18" max="120" step="1" value="35">
+      <p class="hint">Lordo più oneri, diviso le ore lavorate. Per un impiegato in Emilia sta tra 28 e 45 €. Per un quadro sale sopra 60.</p>
+    </div>
+
+    <div class="field">
+      <label>Il tuo tavolo</label>
+      <div class="chips" id="sector">
+        <button class="chip" aria-pressed="true" data-s="manifattura">Manifattura</button>
+        <button class="chip" aria-pressed="false" data-s="automazione">Automazione &amp; healthcare</button>
+        <button class="chip" aria-pressed="false" data-s="studi">Consulenza &amp; studi</button>
+        <button class="chip" aria-pressed="false" data-s="logistica">Trasporti &amp; distribuzione</button>
+        <button class="chip" aria-pressed="false" data-s="energia">Energia, IT &amp; finanza</button>
+      </div>
+    </div>
+
+    <div class="callout num">Una riunione di un'ora con 6 di queste persone vi costa <b id="meetCost">210 €</b>. Prima ancora che qualcuno apra bocca.</div>
+
+    <div class="stack" style="margin-top:22px">
+      <button class="cta" data-go="2">Vai ai ladri di tempo <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
+    </div>
+  </section>
+
+  <!-- 2 · CARDS -->
+  <section class="step" id="s2">
+    <div class="meter">
+      <div class="eyebrow"><span>Non compare a bilancio</span><span>Passo 2 di 3</span></div>
+      <div class="big num"><span id="lossLive">0</span><small>€ / anno</small></div>
+      <div class="tick num">Da quando hai aperto questa pagina: <b id="ticker">0 €</b></div>
+    </div>
+
+    <h2 style="margin-top:10px">Quante ore a settimana, per persona, finiscono qui?</h2>
+    <p class="muted" style="margin-top:8px">Sii onesto. Nessuno guarda. I colori sono quelli dei post-it di stamattina.</p>
+
+    <div class="cards" id="cards"></div>
+
+    <div class="sticky-cta">
+      <button class="cta" data-go="3">Chiudi il bilancio <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
+    </div>
+  </section>
+
+  <!-- 3 · VERDICT -->
+  <section class="step verdict" id="s3">
+    <div class="brand"><svg><use href="#ss9" fill="#00CCCC"/></svg><span>Passo 3 di 3 · <b>Il verdetto</b></span></div>
+    <span class="kicker" id="kicker">Perdita silenziosa</span>
+    <div class="hero-num num" id="lossTotal">0 €</div>
+    <p class="unit">all'anno, in ore pagate che non producono niente. <span id="pct" class="num"></span></p>
+
+    <div class="equiv num">
+      <div class="eq"><div class="v" id="eqFte">0</div><div class="l">persone a tempo pieno che, sommate, lavorano solo a perdere tempo</div></div>
+      <div class="eq"><div class="v" id="eqDays">0</div><div class="l">giornate-persona all'anno</div></div>
+      <div class="eq"><div class="v" id="eqDay">0 €</div><div class="l">ogni singolo giorno lavorativo</div></div>
+      <div class="eq"><div class="v" id="eqNow">0 €</div><div class="l">durante questa sessione di 90 minuti, nella tua azienda</div></div>
+    </div>
+
+    <div class="split">
+      <p class="eyebrow">Quanto se ne può riprendere</p>
+      <div class="hero-num gain num" id="recTotal">0 €</div>
+      <p class="unit">all'anno, con AI e processi rimessi in fila. Il resto è umano e resta.</p>
+    </div>
+
+    <div class="bars" id="bars"></div>
+    <div class="legend"><span><i style="background:var(--loss-deep)"></i>resta perso</span><span><i style="background:var(--cyan)"></i>recuperabile</span></div>
+
+    <div class="honest">
+      <p><b style="font-weight:600">Non da domani, e non da soli.</b> Il numero in ciano è una quota realistica per chi rimette in fila i processi e affida alle macchine il lavoro da macchina: ricopiare, controllare, cercare.</p>
+      <p>Il numero in rosso invece esiste già. Da anni. Il piano a 30 giorni per iniziare a spostarlo ve lo consegniamo alle 17:30.</p>
+    </div>
+
+    <div class="stack">
+      <button class="cta" id="share">Confronta col vicino di tavolo <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
+      <button class="cta ghost" data-go="2">Torna alle carte <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
+    </div>
+    <p class="fine">Stime su 220 giorni lavorativi, 44 settimane, 8 ore al giorno. Le quote recuperabili sono prudenziali e derivano dai casi visti in azienda.</p>
+    <div class="brand" style="padding-top:30px"><svg><use href="#ss9" fill="#00CCCC"/></svg><span><b>SS9 Digitale</b> · Driving Transformation, Enabling Growth · ss9digitale.it</span></div>
+  </section>
+</div>
+<div class="toast" id="toast">Copiato</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+  // URL pubblico della pagina: dopo la prima pubblicazione incollalo qui, così il QR punta al link giusto
+  // anche quando la pagina gira dentro il viewer. Fallback: l'URL corrente.
+  const PAGE_URL='https://ss9-digitale-it.github.io/bilancio-ombra/';
+  const WEEKS=44, DAYS=220, HOURS_YEAR=DAYS*8;
+  const fmtEur=n=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(Math.round(n))+' €';
+  const fmtN=(n,d=0)=>new Intl.NumberFormat('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d}).format(n);
+
+  // Ladri di tempo. h = ore/settimana/persona di default, max, rec = quota recuperabile.
+  const CARDS=[
+    {id:'riunioni',t:'Riunioni per capire a che punto siamo',tag:'organizzativo',h:2,max:8,rec:.35,
+      why:{_:'Convocate per sapere cose che erano già scritte da qualche parte.'}},
+    {id:'cerca',t:'Cercare l\'informazione',tag:'tecnico',h:1.5,max:8,rec:.6,
+      why:{_:'Mail, cartelle, chat, "chiedi a Paola che lo sa". Il dato esiste, ma non si sa dove.'}},
+    {id:'ricopia',t:'Ricopiare dati a mano',tag:'tecnico',h:1.5,max:10,rec:.8,
+      why:{manifattura:'Ordini cliente che arrivano in PDF o mail, ogni volta scritti diversi, e finiscono nel gestionale a mano.',
+           automazione:'Liste componenti dai documenti di progetto, digitate riga per riga nell\'ordine d\'acquisto.',
+           studi:'Lettere d\'incarico e pratiche aperte a gestionale ricopiando dalla corrispondenza col cliente.',
+           logistica:'Rifornimenti dagli scontrini, eventi di consegna dalle chat, referti PDF caricati a mano.',
+           energia:'Report ADV, fogli ore da note libere, ticket aperti ricopiando la mail del cliente.'}},
+    {id:'rifa',t:'Rifare perché la versione buona era altrove',tag:'organizzativo',h:1,max:6,rec:.5,
+      why:{_:'"Definitivo_v3_finale_OK.xlsx". Due persone, due versioni, un pomeriggio.'}},
+    {id:'controlla',t:'Controllare documenti a mano',tag:'economico',h:1,max:8,rec:.7,
+      why:{manifattura:'Conferme d\'ordine dei fornitori confrontate con l\'ordine: quantità, prezzi, date. Quasi nessuno lo fa davvero.',
+           automazione:'Marginalità di commessa ricostruita a fine progetto incrociando vendita, componenti e ore uomo.',
+           studi:'Fatture d\'acquisto contro estratto conto, ogni mese, formati tutti diversi.',
+           logistica:'Fatture dei vettori a fine mese: prezzo concordato, supplementi, viaggio fatto davvero.',
+           energia:'Conguagli, insoluti e fatturazione ricorrente verificati riga per riga sotto scadenza.'}},
+    {id:'sollecita',t:'Inseguire conferme e solleciti',tag:'relazionale',h:1.5,max:8,rec:.55,
+      why:{_:'"Come non detto, l\'avevo mandata a te?" Il lavoro di far fare il lavoro agli altri.'}},
+    {id:'pulisce',t:'Pulire anagrafiche e dati sporchi',tag:'tecnico',h:.5,max:5,rec:.85,
+      why:{_:'Partite IVA sbagliate, prefissi mancanti, lo stesso cliente scritto in tre modi. Oggi nessuno lo fa: si scopre in fattura.'}},
+    {id:'report',t:'Report fatti a mano su Excel',tag:'economico',h:1,max:8,rec:.75,
+      why:{_:'Il numero che il titolare chiede il venerdì e arriva il martedì. "Quanto fatturo su quel segmento?"'}},
+  ];
+
+  const state={people:12,cost:35,sector:'manifattura',hours:Object.fromEntries(CARDS.map(c=>[c.id,c.h]))};
+  const $=s=>document.querySelector(s);
+
+  // ----- navigation
+  const steps=[...document.querySelectorAll('.step')];
+  function go(n){steps.forEach(s=>s.classList.toggle('on',s.id==='s'+n));window.scrollTo({top:0,behavior:'instant'});if(n===2&&!tickStart)tickStart=performance.now();if(n===3)renderVerdict();if(n===4)renderQr();}
+  let qrDone=false;
+  function renderQr(){
+    if(qrDone)return;qrDone=true;
+    const url=PAGE_URL||location.href;$('#qrUrl').textContent=url.replace(/^https?:\/\//,'');
+    try{new QRCode($('#qr'),{text:url,width:520,height:520,colorDark:'#101D20',colorLight:'#F0EDEE',correctLevel:QRCode.CorrectLevel.M});}
+    catch(e){$('#qr').textContent=url;}
+  }
+  if(new URLSearchParams(location.search).has('sala'))go(4);
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(+b.dataset.go);});
+
+  // ----- setup
+  const people=$('#people'),cost=$('#cost');
+  function setupChange(){state.people=+people.value;state.cost=+cost.value;$('#peopleV').textContent=state.people;$('#costV').textContent=state.cost;$('#meetCost').textContent=fmtEur(6*state.cost);renderCards(false);}
+  people.addEventListener('input',setupChange);cost.addEventListener('input',setupChange);
+  $('#sector').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;[...$('#sector').children].forEach(x=>x.setAttribute('aria-pressed',x===c));state.sector=c.dataset.s;renderCards(true);});
+
+  // ----- math
+  const totals=()=>{let lostH=0,recH=0;for(const c of CARDS){const h=state.hours[c.id]*state.people*WEEKS;lostH+=h;recH+=h*c.rec;}return{lostH,recH,lost:lostH*state.cost,rec:recH*state.cost};};
+
+  // ----- cards
+  const cardsEl=$('#cards');
+  function renderCards(rebuild){
+    if(rebuild||!cardsEl.children.length){
+      cardsEl.innerHTML=CARDS.map(c=>`<div class="card" data-id="${c.id}">
+        <div class="top"><h3>${c.t}</h3><span class="tag ${c.tag}">${c.tag}</span></div>
+        <p class="why">${c.why[state.sector]||c.why._}</p>
+        <div class="row"><input type="range" min="0" max="${c.max}" step="0.5" value="${state.hours[c.id]}" aria-label="Ore a settimana per persona: ${c.t}"><div class="h num"><span class="hv">${fmtN(state.hours[c.id],1)}</span><small>h / sett. / persona</small></div></div>
+        <div class="cost num"><span>tutta l'azienda, un anno</span><b class="cv"></b></div>
+      </div>`).join('');
+      cardsEl.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{const id=e.target.closest('.card').dataset.id;state.hours[id]=+e.target.value;renderCards(false);}));
+    }
+    for(const el of cardsEl.children){const c=CARDS.find(x=>x.id===el.dataset.id);const h=state.hours[c.id];el.querySelector('.hv').textContent=fmtN(h,1);el.querySelector('.cv').textContent=fmtEur(h*state.people*WEEKS*state.cost);}
+    const t=totals();animateTo(lossLive,t.lost,v=>lossLive.textContent=fmtN(v));
+  }
+  const lossLive=$('#lossLive');
+
+  // count-up
+  const anim=new Map();
+  function animateTo(el,target,set){
+    const from=anim.get(el)?.value??0;const start=performance.now();const dur=matchMedia('(prefers-reduced-motion:reduce)').matches?0:420;
+    if(anim.get(el)?.raf)cancelAnimationFrame(anim.get(el).raf);
+    const step=now=>{const k=dur?Math.min(1,(now-start)/dur):1;const e=1-Math.pow(1-k,3);const v=from+(target-from)*e;anim.set(el,{value:v,raf:k<1?requestAnimationFrame(step):null});set(v);};
+    step(start);
+  }
+
+  // ticker: € bruciati da quando la pagina è aperta, al ritmo annuo attuale
+  let tickStart=null;const tickerEl=$('#ticker');
+  (function tick(){if(tickStart){const sec=(performance.now()-tickStart)/1000;const rate=totals().lost/(HOURS_YEAR*3600);tickerEl.textContent=fmtN(sec*rate,2)+' €';}requestAnimationFrame(tick);})();
+
+  // ----- verdict
+  function renderVerdict(){
+    const t=totals();const cap=state.people*1760;const share=t.lostH/cap;
+    const k=$('#kicker');
+    let tier;
+    if(share<.08){tier='Sotto controllo. O sotto stima.';k.className='kicker ok';}
+    else if(share<.18){tier='Perdita silenziosa';k.className='kicker';}
+    else if(share<.3){tier='Una voce di bilancio che manca';k.className='kicker';}
+    else{tier='Emorragia';k.className='kicker';}
+    k.textContent=tier;
+    animateTo($('#lossTotal'),t.lost,v=>$('#lossTotal').textContent=fmtEur(v));
+    $('#pct').textContent=`È il ${fmtN(share*100)}% di tutte le ore che paghi in ufficio.`;
+    $('#eqFte').textContent=fmtN(t.lostH/1760,1);
+    $('#eqDays').textContent=fmtN(t.lostH/8);
+    $('#eqDay').textContent=fmtEur(t.lost/DAYS);
+    $('#eqNow').textContent=fmtEur(t.lost/HOURS_YEAR*1.5);
+    animateTo($('#recTotal'),t.rec,v=>$('#recTotal').textContent=fmtEur(v));
+    const max=Math.max(...CARDS.map(c=>state.hours[c.id]))||1;
+    $('#bars').innerHTML=CARDS.filter(c=>state.hours[c.id]>0).sort((a,b)=>state.hours[b.id]-state.hours[a.id]).map(c=>{
+      const h=state.hours[c.id];const w=h/max*100;const eur=h*state.people*WEEKS*state.cost;
+      return `<div class="bar"><div class="lbl"><span>${c.t}</span><span class="num">${fmtEur(eur)} · <span class="cyan">${fmtEur(eur*c.rec)}</span></span></div>
+      <div class="track" style="width:${w}%"><div class="lost" style="width:${(1-c.rec)*100}%"></div><div class="rec" style="width:${c.rec*100}%"></div></div></div>`;
+    }).join('');
+  }
+
+  // ----- share
+  $('#share').addEventListener('click',async()=>{
+    const t=totals();
+    const text=`Il mio Bilancio Ombra: ${fmtEur(t.lost)} all'anno che non compaiono a bilancio, ${fmtEur(t.rec)} recuperabili. E il tuo? #IlValoreDelTempo · SS9 Digitale`;
+    try{if(navigator.share){await navigator.share({text});return;}}catch(e){}
+    try{await navigator.clipboard.writeText(text);}catch(e){}
+    const to=$('#toast');to.textContent='Copiato. Incollalo dove vuoi.';to.classList.add('show');setTimeout(()=>to.classList.remove('show'),1800);
+  });
+
+  setupChange();
+})();
+</script>
