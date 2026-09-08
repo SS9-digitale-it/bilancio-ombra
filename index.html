@@ -129,7 +129,19 @@
   .qrwrap{background:var(--bone);border-radius:8px;padding:18px;display:inline-block}
   .qrwrap img,.qrwrap canvas{display:block;width:min(70vw,360px)!important;height:auto!important}
   .url{font-size:14px;color:var(--muted);word-break:break-all;margin-top:14px}
-  @media (min-width:900px){.sala{max-width:none}.sala .qrwrap img,.sala .qrwrap canvas{width:min(60vh,520px)!important}}
+  .sala .txt{display:contents}
+  @media (min-width:900px){
+    .app:has(.sala.on){max-width:1400px;padding:0 48px}
+    .sala{display:grid;grid-template-columns:1fr auto;column-gap:64px;align-items:center;min-height:100vh}
+    .sala .txt{display:block}
+    .sala .brand{grid-column:1/-1;align-self:start}
+    .sala h1{font-size:clamp(48px,6vw,96px)!important}
+    .sala .lead{font-size:clamp(20px,1.8vw,28px);max-width:26ch}
+    .sala .qrwrap{padding:28px;border-radius:12px}
+    .sala .qrwrap img,.sala .qrwrap canvas{width:min(66vh,680px)!important}
+    .sala .url{grid-column:1/-1;font-size:18px;align-self:end;padding-bottom:20px}
+    .sala .stack{grid-column:1;max-width:360px;margin-top:0!important}
+  }
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -156,9 +168,11 @@
   <!-- 4 · MODALITÀ SALA (QR) -->
   <section class="step sala" id="s4">
     <div class="brand"><svg><use href="#ss9" fill="#00CCCC"/></svg><span><b>SS9 Digitale</b> · Il Valore del Tempo</span></div>
-    <p class="eyebrow">Il tempo che non compare a bilancio</p>
-    <h1 style="font-size:clamp(34px,9vw,54px)">Il Bilancio<br>Ombra</h1>
-    <p class="lead" style="margin:14px 0 22px">Inquadra. Tre minuti. Poi confronta il numero col vicino di tavolo.</p>
+    <div class="txt">
+      <p class="eyebrow">Il tempo che non compare a bilancio</p>
+      <h1 style="font-size:clamp(34px,9vw,54px)">Il Bilancio<br>Ombra</h1>
+      <p class="lead" style="margin:14px 0 22px">Inquadra. Tre minuti. Poi confronta il numero col vicino di tavolo.</p>
+    </div>
     <div class="qrwrap"><div id="qr"></div></div>
     <p class="url num" id="qrUrl"></p>
     <div class="stack" style="margin-top:26px">
@@ -310,7 +324,8 @@
     try{new QRCode($('#qr'),{text:url,width:520,height:520,colorDark:'#101D20',colorLight:'#F0EDEE',correctLevel:QRCode.CorrectLevel.M});}
     catch(e){$('#qr').textContent=url;}
   }
-  if(new URLSearchParams(location.search).has('sala'))go(4);
+  const qs=new URLSearchParams(location.search);
+  if(qs.has('sala'))go(4);else if(qs.has('step'))go(+qs.get('step'));
   document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(+b.dataset.go);});
 
   // ----- setup
