@@ -64,6 +64,7 @@
   .field label{display:block;font-weight:400;font-size:17px;margin-bottom:6px}
   .field .val{font-weight:800;font-size:40px;line-height:1;color:var(--cyan);letter-spacing:-.02em}
   .field .val small{font-size:16px;font-weight:400;color:var(--muted);letter-spacing:0;margin-left:6px}
+  .field .val .guess{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan-deep);margin-left:10px;vertical-align:middle}
   input[type=range]{width:100%;margin:14px 0 4px;accent-color:var(--cyan);height:28px}
   .hint{font-size:14px;color:var(--muted)}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -183,21 +184,7 @@
   <!-- 1 · SETUP -->
   <section class="step" id="s1">
     <div class="brand"><svg><use href="#ss9" fill="#00CCCC"/></svg><span>Passo 1 di 3 · <b>La tua azienda</b></span></div>
-    <h2>Prima due numeri che conosci già.</h2>
-
-    <div class="field">
-      <label for="people">Persone che lavorano in ufficio (non in produzione)</label>
-      <div class="val num"><span id="peopleV">12</span><small>persone</small></div>
-      <input type="range" id="people" min="2" max="150" step="1" value="12">
-      <p class="hint">Amministrazione, commerciale, acquisti, logistica, tecnici d'ufficio. Chi passa la giornata tra mail, gestionale ed Excel.</p>
-    </div>
-
-    <div class="field">
-      <label for="cost">Costo aziendale di un'ora di una di queste persone</label>
-      <div class="val num"><span id="costV">35</span><small>€ / ora</small></div>
-      <input type="range" id="cost" min="18" max="120" step="1" value="35">
-      <p class="hint">Lordo più oneri, diviso le ore lavorate. Per un impiegato in Emilia sta tra 28 e 45 €. Per un quadro sale sopra 60.</p>
-    </div>
+    <h2>Partiamo da quello che sai già.</h2>
 
     <div class="field">
       <label>Il tuo tavolo</label>
@@ -208,9 +195,25 @@
         <button class="chip" aria-pressed="false" data-s="logistica">Trasporti &amp; distribuzione</button>
         <button class="chip" aria-pressed="false" data-s="energia">Energia, IT &amp; finanza</button>
       </div>
+      <p class="hint">Serve a tarare i costi orari e gli esempi: ogni settore perde tempo a modo suo.</p>
     </div>
 
-    <div class="callout num">Una riunione di un'ora con 6 di queste persone vi costa <b id="meetCost">210 €</b>. Prima ancora che qualcuno apra bocca.</div>
+    <div class="field">
+      <label for="people">Persone che lavorano in ufficio (non in produzione)</label>
+      <div class="val num"><span id="peopleV">12</span><small>persone</small></div>
+      <input type="range" id="people" min="2" max="150" step="1" value="12">
+      <p class="hint">Amministrazione, commerciale, acquisti, logistica, tecnici d'ufficio. Chi passa la giornata tra mail, gestionale ed Excel.</p>
+    </div>
+
+    <div class="field">
+      <label for="cost">Costo aziendale di un'ora di una di queste persone</label>
+      <div class="val num"><span id="costV">33</span><small>€ / ora</small><small class="guess" id="costGuess">stima del tuo settore</small></div>
+      <input type="range" id="cost" min="18" max="120" step="1" value="33">
+      <p class="hint" id="costHint"></p>
+      <p class="hint">Lordo più oneri (circa ×1,4), diviso le ~1.720 ore che una persona lavora davvero in un anno.</p>
+    </div>
+
+    <div class="callout num">Una riunione di un'ora con <b id="meetN">6</b> di queste persone vi costa <b id="meetCost">198 €</b>. Prima ancora che qualcuno apra bocca.</div>
 
     <div class="stack" style="margin-top:22px">
       <button class="cta" data-go="2">Vai ai ladri di tempo <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
@@ -311,7 +314,18 @@
       why:{_:'Il numero che il titolare chiede il venerdì e arriva il martedì. "Quanto fatturo su quel segmento?"'}},
   ];
 
-  const state={people:12,cost:35,sector:'manifattura',hours:Object.fromEntries(CARDS.map(c=>[c.id,c.h]))};
+  // Costo orario aziendale per settore: lordo + oneri (~×1,4) diviso ~1.720 ore lavorate all'anno.
+  // Sono medie di una popolazione d'ufficio (molti impiegati, qualche quadro), tenute prudenziali:
+  // un costo più basso abbassa la perdita, e preferiamo essere sotto che sopra.
+  const SECTORS={
+    manifattura:{cost:33,hint:'Impiegato tecnico o amministrativo metalmeccanico: 26-36 €. Un quadro supera i 50.'},
+    automazione:{cost:37,hint:'Progettisti, software, service: 32-44 €. Un capo progetto sta sopra i 55.'},
+    studi:{cost:38,hint:'Forbice larga: 24 € una segreteria, oltre 70 un senior. E qui l\'ora persa era anche vendibile.'},
+    logistica:{cost:29,hint:'CCNL trasporti e commercio: 24-32 €. Un responsabile di filiale arriva a 45.'},
+    energia:{cost:41,hint:'IT e credito pagano sopra la media: 32-48 €, i quadri direttivi oltre 60.'},
+  };
+
+  const state={people:12,cost:SECTORS.manifattura.cost,sector:'manifattura',hours:Object.fromEntries(CARDS.map(c=>[c.id,c.h]))};
   const $=s=>document.querySelector(s);
 
   // ----- navigation
@@ -328,9 +342,21 @@
 
   // ----- setup
   const people=$('#people'),cost=$('#cost');
-  function setupChange(){state.people=+people.value;state.cost=+cost.value;$('#peopleV').textContent=state.people;$('#costV').textContent=state.cost;$('#meetCost').textContent=fmtEur(6*state.cost);renderCards(false);}
-  people.addEventListener('input',setupChange);cost.addEventListener('input',setupChange);
-  $('#sector').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;[...$('#sector').children].forEach(x=>x.setAttribute('aria-pressed',x===c));state.sector=c.dataset.s;renderCards(true);});
+  // La riunione d'esempio non scala con l'ufficio (nessuno ci va tutto insieme): resta a 6,
+  // ma in un ufficio più piccolo di 6 la frase si contraddirebbe, quindi la limitiamo.
+  function setupChange(){state.people=+people.value;state.cost=+cost.value;$('#peopleV').textContent=state.people;$('#costV').textContent=state.cost;
+    const meetN=Math.min(6,state.people);$('#meetN').textContent=meetN;$('#meetCost').textContent=fmtEur(meetN*state.cost);renderCards(false);}
+  people.addEventListener('input',setupChange);
+  // Finché il costo è la stima di settore lo riallineiamo al cambio tavolo; appena l'utente
+  // muove lo slider il suo numero vince e non lo tocchiamo più.
+  let costTouched=false;
+  cost.addEventListener('input',()=>{costTouched=true;$('#costGuess').hidden=true;setupChange();});
+  function applySector(id){
+    state.sector=id;
+    $('#costHint').textContent=SECTORS[id].hint;
+    if(!costTouched){cost.value=SECTORS[id].cost;setupChange();}
+  }
+  $('#sector').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;[...$('#sector').children].forEach(x=>x.setAttribute('aria-pressed',x===c));applySector(c.dataset.s);renderCards(true);});
 
   // ----- math
   const totals=()=>{let lostH=0,recH=0;for(const c of CARDS){const h=state.hours[c.id]*state.people*WEEKS;lostH+=h;recH+=h*c.rec;}return{lostH,recH,lost:lostH*state.cost,rec:recH*state.cost};};
@@ -399,7 +425,7 @@
     const to=$('#toast');to.textContent='Copiato. Incollalo dove vuoi.';to.classList.add('show');setTimeout(()=>to.classList.remove('show'),1800);
   });
 
-  setupChange();
+  applySector(state.sector); // scrive hint e costo di settore, e da lì chiama setupChange
   const qs=new URLSearchParams(location.search);
   if(qs.has('sala'))go(4);else if(qs.has('step'))go(+qs.get('step'));
 })();
