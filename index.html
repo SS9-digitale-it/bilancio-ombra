@@ -270,7 +270,7 @@
       <button class="cta" id="share">Confronta col vicino di tavolo <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
       <button class="cta ghost" data-go="2">Torna alle carte <svg class="chev" viewBox="0 0 283.46 283.46"><use href="#ss9"/></svg></button>
     </div>
-    <p class="fine">Stime su 220 giorni lavorativi, 44 settimane, 8 ore al giorno. Le quote recuperabili sono prudenziali e derivano dai casi visti in azienda.</p>
+    <p class="fine">Stime su 220 giorni lavorativi, 44 settimane, 8 ore al giorno. Le quote recuperabili sono prudenziali e derivano dai casi visti in azienda. I numeri che inserisci, senza nome né azienda, entrano nelle statistiche anonime della giornata.</p>
     <div class="brand" style="padding-top:30px"><svg><use href="#ss9" fill="#00CCCC"/></svg><span><b>SS9 Digitale</b> · Driving Transformation, Enabling Growth · ss9digitale.it</span></div>
   </section>
 </div>
@@ -330,7 +330,7 @@
 
   // ----- navigation
   const steps=[...document.querySelectorAll('.step')];
-  function go(n){steps.forEach(s=>s.classList.toggle('on',s.id==='s'+n));window.scrollTo({top:0,behavior:'instant'});if(n===2&&!tickStart)tickStart=performance.now();if(n===3)renderVerdict();if(n===4)renderQr();}
+  function go(n){steps.forEach(s=>s.classList.toggle('on',s.id==='s'+n));window.scrollTo({top:0,behavior:'instant'});if(n===2&&!tickStart)tickStart=performance.now();if(n===3){renderVerdict();salva();}if(n===4)renderQr();}
   let qrDone=false;
   function renderQr(){
     if(qrDone)return;qrDone=true;
@@ -377,6 +377,28 @@
     const t=totals();animateTo(lossLive,t.lost,v=>lossLive.textContent=fmtN(v));
   }
   const lossLive=$('#lossLive');
+
+  // ----- statistiche anonime della giornata
+  // Le regole del database sono aperte in lettura e scrittura, perché la dashboard
+  // (dati.html) legge da browser senza autenticarsi: qui non deve finire mai niente
+  // di riconducibile a un'azienda. Nessun identificatore, nessun nome: solo i numeri.
+  // Una riga per sessione: la prima visita al verdetto la crea, i ritorni la riscrivono.
+  const SAVE_URL='https://myappfreeexternalauth-default-rtdb.europe-west1.firebasedatabase.app/sessioni';
+  let saveKey=null,saveBusy=false;
+  async function salva(){
+    if(saveBusy)return;saveBusy=true;
+    const t=totals();
+    // Nessun Content-Type: così la richiesta resta "semplice" e il browser evita il
+    // preflight, che in sala su rete lenta è un giro in più che può solo fallire.
+    const body=JSON.stringify({ts:new Date().toISOString(),settore:state.sector,
+      persone:state.people,costo:state.cost,ore:state.hours,orePerse:Math.round(t.lostH),
+      perdita:Math.round(t.lost),recupero:Math.round(t.rec)});
+    try{
+      if(saveKey){await fetch(`${SAVE_URL}/${saveKey}.json`,{method:'PUT',body,keepalive:true});}
+      else{const r=await fetch(`${SAVE_URL}.json`,{method:'POST',body,keepalive:true});saveKey=(await r.json()).name;}
+    }catch(e){/* sala senza rete: il gioco non se ne accorge e va avanti */}
+    saveBusy=false;
+  }
 
   // count-up
   const anim=new Map();
