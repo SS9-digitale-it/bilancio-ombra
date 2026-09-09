@@ -88,6 +88,27 @@
   td.loss{color:var(--loss-lite);font-weight:600}
   td.gain{color:var(--cyan);font-weight:600}
 
+  /* drill-down di sessione */
+  tr.sess{cursor:pointer}
+  tr.sess td:first-child{color:var(--muted)}
+  tr.sess[aria-expanded=true] td{background:var(--ink-2)}
+  tr.sess[aria-expanded=true] td:first-child{color:var(--cyan)}
+  tr.sess:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+  .chev{display:inline-block;width:1em;color:var(--cyan);font-size:11px;vertical-align:1px}
+  tr.det>td{padding:4px 14px 22px;background:var(--ink-2);border-bottom:1px solid var(--line)}
+  .dtitolo{font-size:13px;color:var(--muted);margin:8px 0 14px;white-space:normal}
+  .chart.dett .row{grid-template-columns:minmax(150px,30%) 1fr minmax(120px,22%);padding:2px 0}
+  .chart.dett .row:hover{background:transparent}
+  .chart.dett .row.off{opacity:.45}
+  .chart.dett .fill{height:10px}
+  .chart.dett .e{font-size:13px;text-align:right;color:var(--loss-lite);font-weight:600;white-space:nowrap}
+  .chart.dett .e small{display:block;color:var(--cyan-deep);font-weight:400;font-size:12px}
+  @media(max-width:620px){
+    .chart.dett .row{grid-template-columns:1fr;gap:2px}
+    .chart.dett .e{text-align:left}
+    .chart.dett .e small{display:inline;margin-left:6px}
+  }
+
   .vuoto{border:1px dashed var(--line);border-radius:8px;padding:34px 24px;text-align:center;color:var(--muted);margin-top:30px}
   .vuoto b{display:block;color:var(--bone);font-weight:600;font-size:19px;margin-bottom:6px}
   .fine{font-size:13px;color:var(--dim);margin-top:34px;padding-top:20px;border-top:1px solid var(--line);max-width:70ch}
@@ -152,7 +173,7 @@
 
     <section>
       <h2>Tutte le sessioni</h2>
-      <p class="nota">Dalla più recente. Le ore per carta stanno nella console Firebase, qui ci sono i totali.</p>
+      <p class="nota">Dalla più recente. <b style="font-weight:600;color:var(--muted)">Clicca una riga</b> per vedere cosa ha messo su ogni carta.</p>
       <div class="tblwrap"><table>
         <thead><tr><th>Ora</th><th>Settore</th><th>Persone</th><th>€/ora</th><th>Ore perse/anno</th><th>Perdita/anno</th><th>Recuperabile</th></tr></thead>
         <tbody id="tbody"></tbody>
@@ -169,18 +190,19 @@
   const DB='https://myappfreeexternalauth-default-rtdb.europe-west1.firebasedatabase.app/sessioni.json';
   const $=s=>document.querySelector(s);
 
-  // Etichette e ordine delle carte: copiati dal gioco, in versione corta perché qui
-  // stanno su una riga di grafico. Se nel gioco cambiano le carte, aggiornali a mano.
+  // Etichette, ordine e quota recuperabile delle carte: copiati dal gioco (rec incluso, serve
+  // al dettaglio di sessione). Se nel gioco cambiano le carte, aggiornali a mano.
   const CARTE=[
-    ['riunioni','Riunioni per capire a che punto siamo'],
-    ['cerca','Cercare l\'informazione'],
-    ['ricopia','Ricopiare dati a mano'],
-    ['rifa','Rifare: la versione buona era altrove'],
-    ['controlla','Controllare documenti a mano'],
-    ['sollecita','Inseguire conferme e solleciti'],
-    ['pulisce','Pulire anagrafiche e dati sporchi'],
-    ['report','Report fatti a mano su Excel'],
+    ['riunioni','Riunioni per capire a che punto siamo',.35],
+    ['cerca','Cercare l\'informazione',.6],
+    ['ricopia','Ricopiare dati a mano',.8],
+    ['rifa','Rifare: la versione buona era altrove',.5],
+    ['controlla','Controllare documenti a mano',.7],
+    ['sollecita','Inseguire conferme e solleciti',.55],
+    ['pulisce','Pulire anagrafiche e dati sporchi',.85],
+    ['report','Report fatti a mano su Excel',.75],
   ];
+  const WEEKS=44; // come nel gioco: ore/settimana × 44 = ore/anno
   const SETTORI={manifattura:'Manifattura',automazione:'Automazione & healthcare',
     studi:'Consulenza & studi',logistica:'Trasporti & distribuzione',energia:'Energia, IT & finanza'};
 
@@ -192,6 +214,7 @@
   const media=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
 
   let tutte=[],settore='tutti',timer=null;
+  const aperte=new Set(); // sessioni col dettaglio aperto: sopravvivono all'auto-refresh
 
   async function carica(){
     try{
@@ -232,7 +255,7 @@
     $('#tOre').textContent=n0(media(d.map(s=>s.persone?s.orePerse/s.persone/44:0)),1);
 
     // ----- carte: una barra per carta, ordinate dalla peggiore
-    const carte=CARTE.map(([id,lbl])=>{
+    const carte=CARTE.map(([id,lbl,rec])=>{
       const v=d.map(s=>(s.ore&&typeof s.ore[id]==='number')?s.ore[id]:0);
       return {lbl,m:media(v),zero:v.filter(x=>!x).length};
     }).sort((a,b)=>b.m-a.m);
@@ -253,14 +276,56 @@
       <div class="track"><div class="fill loss" style="width:${s.med/maxS*100}%"></div>
         <span class="v num">${eur(s.med)}</span></div></div>`).join('');
 
-    $('#tbody').innerHTML=d.map(s=>`<tr>
-      <td>${s.ts?ora(s.ts):'—'}</td><td>${SETTORI[s.settore]||s.settore||'—'}</td>
+    // ----- tabella con drill-down: ogni riga ne apre una seconda col dettaglio per carta.
+    // La barra del dettaglio è in scala sul massimo di tutte le sessioni filtrate, così
+    // due sessioni aperte una dopo l'altra si confrontano a occhio.
+    const maxOre=Math.max(...d.flatMap(s=>CARTE.map(([id])=>s.ore?.[id]||0)),1);
+    $('#tbody').innerHTML=d.map(s=>`<tr class="sess" data-k="${s.k}" tabindex="0" role="button" aria-expanded="false">
+      <td><span class="chev" aria-hidden="true">▸</span>${s.ts?ora(s.ts):'—'}</td>
+      <td>${SETTORI[s.settore]||s.settore||'—'}</td>
       <td class="num">${n0(s.persone||0)}</td><td class="num">${n0(s.costo||0)} €</td>
       <td class="num">${n0(s.orePerse||0)}</td>
-      <td class="num loss">${eur(s.perdita)}</td><td class="num gain">${eur(s.recupero)}</td></tr>`).join('');
+      <td class="num loss">${eur(s.perdita)}</td><td class="num gain">${eur(s.recupero)}</td></tr>
+      <tr class="det" data-det="${s.k}" hidden><td colspan="7">${dettaglio(s,maxOre)}</td></tr>`).join('');
+    // riapre quello che era aperto prima del ridisegno
+    $('#tbody').querySelectorAll('tr.sess').forEach(tr=>{if(aperte.has(tr.dataset.k))mostra(tr,true);});
+  }
+
+  // Dettaglio di una sessione: cosa ha messo su ogni carta e quanto vale.
+  function dettaglio(s,maxOre){
+    const righe=CARTE.map(([id,lbl,rec])=>{
+      const h=s.ore?.[id]||0, eu=h*(s.persone||0)*WEEKS*(s.costo||0);
+      return `<div class="row${h?'':' off'}">
+        <div class="k">${lbl}</div>
+        <div class="track"><div class="fill" style="width:${h/maxOre*100}%"></div>
+          <span class="v num">${n0(h,1)}<small>h/sett.</small></span></div>
+        <div class="e num">${eur(eu)}<small>di cui ${eur(eu*rec)} recuperabili</small></div>
+      </div>`;
+    }).join('');
+    const zero=CARTE.filter(([id])=>!(s.ore?.[id])).length;
+    return `<p class="dtitolo">${n0(s.persone||0)} persone × ${n0(s.costo||0)} €/ora
+      ${zero?`· ${zero} cart${zero===1?'a':'e'} su ${CARTE.length} a zero`:'· nessuna carta a zero'}
+      ${s.ore?'':'· questa sessione non ha salvato le ore (versione vecchia del gioco)'}</p>
+      <div class="chart dett">${righe}</div>`;
   }
 
   $('#filtri').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;settore=c.dataset.s;disegna();});
+
+  // drill-down: click o Invio/Spazio sulla riga apre il dettaglio della sessione
+  function mostra(tr,on){
+    const det=document.querySelector(`.det[data-det="${tr.dataset.k}"]`);
+    if(!det)return;
+    det.hidden=!on;tr.setAttribute('aria-expanded',on);
+    tr.querySelector('.chev').textContent=on?'▾':'▸';
+    on?aperte.add(tr.dataset.k):aperte.delete(tr.dataset.k);
+  }
+  const apri=tr=>mostra(tr,!aperte.has(tr.dataset.k));
+  $('#tbody').addEventListener('click',e=>{const tr=e.target.closest('tr.sess');if(tr)apri(tr);});
+  $('#tbody').addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&e.key!==' ')return;
+    const tr=e.target.closest('tr.sess');if(!tr)return;
+    e.preventDefault();apri(tr);
+  });
   $('#ricarica').addEventListener('click',carica);
   $('#auto').addEventListener('click',e=>{
     const on=e.currentTarget.getAttribute('aria-pressed')==='false';
